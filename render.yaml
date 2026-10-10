@@ -1,0 +1,18 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+#
+# Frontend only, for now. The Lecture 8 backend (FastAPI + Supabase) is not
+# built yet; when it is, add a second service here of type `web` with
+# `runtime: python`, then set VITE_API_URL below to its URL.
+
+services:
+  - type: web
+    name: yale-som-virtual
+    runtime: static
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    pullRequestPreviewsEnabled: false
+    routes:
+      # single-page app: serve index.html for any unmatched path
+      - type: rewrite
+        source: /*
+        destination: /index.html
