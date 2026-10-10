@@ -1,16 +1,52 @@
 # Render Blueprint — https://render.com/docs/blueprint-spec
 #
-# Frontend only, for now. The Lecture 8 backend (FastAPI + Supabase) is not
-# built yet; when it is, add a second service here of type `web` with
-# `runtime: python`, then set VITE_API_URL below to its URL.
+# Two services: the FastAPI backend (paid, ~$7/mo) and the Vite frontend
+# (static, free). Deploy with New -> Blueprint and point it at this repo.
+#
+# Two values are deliberately NOT in here:
+#   PORTKEY_API_KEY  — a secret; Render will prompt you for it
+#   CORS_ORIGINS     — the frontend URL, which does not exist until the first
+#                      deploy finishes. Set it on the API service afterwards.
 
 services:
+  # ---- backend ----
+  - type: web
+    name: yale-som-api
+    runtime: python
+    plan: starter
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      - key: PORTKEY_API_KEY
+        sync: false # Render prompts for this; never commit it
+      - key: PORTKEY_BASE_URL
+        value: https://api.portkey.ai/v1
+      - key: LLM_MODEL
+        value: gpt-6-luna
+      - key: LLM_REASONING_EFFORT
+        # gpt-6-luna rejects function tools unless this is 'none'
+        value: none
+      - key: CORS_ORIGINS
+        sync: false # set to the static site's URL after the first deploy
+
+  # ---- frontend ----
   - type: web
     name: yale-som-virtual
     runtime: static
     buildCommand: npm ci && npm run build
     staticPublishPath: ./dist
     pullRequestPreviewsEnabled: false
+    envVars:
+      # Render supplies the bare hostname; api.js adds the https:// itself.
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: yale-som-api
+          property: host
     routes:
       # single-page app: serve index.html for any unmatched path
       - type: rewrite

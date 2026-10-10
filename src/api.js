@@ -1,5 +1,12 @@
 // Backend base URL. Set VITE_API_URL in .env.local for dev, and in Render for prod.
-export const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '')
+// Render's blueprint hands over a bare hostname (`my-api.onrender.com`) with no
+// scheme, so add one when it's missing.
+function baseUrl(raw) {
+  const v = (raw || 'http://localhost:8000').trim().replace(/\/+$/, '')
+  return /^https?:\/\//.test(v) ? v : `https://${v}`
+}
+
+export const API_URL = baseUrl(import.meta.env.VITE_API_URL)
 
 /**
  * One turn of conversation with a professor.

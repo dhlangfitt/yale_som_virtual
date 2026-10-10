@@ -25,11 +25,26 @@ import professors  # noqa: E402
 
 app = FastAPI(title="Yale SOM Virtual — faculty agents")
 
+def _origins() -> list[str]:
+    """Parse CORS_ORIGINS, tolerating bare hostnames.
+
+    Render's dashboard and blueprints hand over `my-site.onrender.com` with no
+    scheme, but the browser sends a full origin, so normalise before comparing.
+    """
+    out = []
+    for raw in os.getenv("CORS_ORIGINS", "http://localhost:5173").split(","):
+        o = raw.strip().rstrip("/")
+        if not o:
+            continue
+        out.append(o if o.startswith(("http://", "https://")) else f"https://{o}")
+    return out
+
+
 # The frontend is served from a different origin in dev (5173) and in production
 # (a Render static site), so it needs explicit CORS.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[o for o in os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",") if o],
+    allow_origins=_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
